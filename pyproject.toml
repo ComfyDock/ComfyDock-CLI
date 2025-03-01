@@ -1,5 +1,5 @@
 [project]
-name = "comfydock-cli"
+name = "comfydock_cli"
 version = "0.1.0"
 description = "ComfyDock CLI"
 readme = "README.md"

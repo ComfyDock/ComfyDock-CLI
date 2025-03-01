@@ -1,0 +1,13 @@
+[project]
+name = "comfydock-cli"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1.8",
+    "comfydock-server>=0.1.4",
+]
+
+[project.scripts]
+comfydock = "comfydock_cli.cli:main"

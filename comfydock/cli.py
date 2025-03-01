@@ -131,7 +131,7 @@ def configure_logging():
 # --------------------------------------------------
 
 @click.group()
-@click.version_option("0.1.0", prog_name="ComfyDock CLI")
+@click.version_option("0.1.4", prog_name="ComfyDock CLI")
 def cli():
     """
     ComfyDock CLI - Manage ComfyUI Docker environments.

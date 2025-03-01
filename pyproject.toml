@@ -1,6 +1,6 @@
 [project]
-name = "comfydock_cli"
-version = "0.1.1"
+name = "comfydock"
+version = "0.1.2"
 description = "ComfyDock CLI"
 readme = "README.md"
 requires-python = ">=3.12"

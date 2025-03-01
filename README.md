@@ -5,7 +5,7 @@ ComfyDock CLI is a CLI tool for managing ComfyUI environments using ComfyDock an
 ## Installation
 
 ```bash
-pip install comfydock_cli
+pip install comfydock
 ```
 
 ## Usage

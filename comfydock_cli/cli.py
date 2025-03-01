@@ -23,12 +23,12 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 
 # Defaults for config.json if it doesn't exist
 DEFAULT_CONFIG = {
-    "comfyui_path": str(CONFIG_DIR / "ComfyUI"),
+    "comfyui_path": str(Path.home()),
     "db_file_path": str(CONFIG_DIR / "environments.json"),
     "user_settings_file_path": str(CONFIG_DIR / "user.settings.json"),
     "frontend_container_name": "comfydock-frontend",
     "frontend_image": "akatzai/comfydock-frontend",
-    "frontend_version": "0.1.2",
+    "frontend_version": "0.1.3",
     "backend_host": "127.0.0.1",
     "backend_port": 5172,
     "frontend_container_port": 8000,
@@ -39,7 +39,7 @@ DEFAULT_CONFIG = {
 
 # Help text for each field (used in 'comfydock config')
 CONFIG_FIELD_HELP = {
-    "comfyui_path": "Filesystem path to your local ComfyUI clone or desired location.",
+    "comfyui_path": "Default filesystem path to your local ComfyUI clone or desired location.",
     "db_file_path": "Where to store known Docker environments (JSON).",
     "user_settings_file_path": "Where to store user preferences for ComfyDock/ComfyUI.",
     "frontend_container_name": "Name for the Docker container that serves the ComfyUI frontend.",
@@ -167,10 +167,12 @@ def up(backend):
     
     if backend:
         logger.info("Starting ComfyDockServer (backend only)...")
+        click.echo("Starting ComfyDockServer (backend only)...")
         server.start_backend()
         status_message = "ComfyDock backend is now running!"
     else:
         logger.info("Starting ComfyDockServer (backend + frontend)...")
+        click.echo("Starting ComfyDockServer (backend + frontend)...")
         server.start()
         status_message = "ComfyDock is now running!"
         

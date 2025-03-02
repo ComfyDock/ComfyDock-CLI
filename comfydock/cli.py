@@ -28,7 +28,7 @@ DEFAULT_CONFIG = {
     "user_settings_file_path": str(CONFIG_DIR / "user.settings.json"),
     "frontend_container_name": "comfydock-frontend",
     "frontend_image": "akatzai/comfydock-frontend",
-    "frontend_version": "0.1.3",
+    "frontend_version": "0.1.4",
     "backend_host": "127.0.0.1",
     "backend_port": 5172,
     "frontend_container_port": 8000,

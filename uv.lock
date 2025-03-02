@@ -182,7 +182,7 @@ wheels = [
 
 [[package]]
 name = "comfydock"
-version = "0.1.5"
+version = "0.1.6"
 source = { virtual = "." }
 dependencies = [
     { name = "click" },
@@ -193,7 +193,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.1.8" },
-    { name = "comfydock-server", specifier = ">=0.1.5" },
+    { name = "comfydock-server", git = "https://github.com/ComfyDock/ComfyDock-Server.git" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
 ]
 
@@ -215,7 +215,7 @@ wheels = [
 [[package]]
 name = "comfydock-server"
 version = "0.1.5"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/ComfyDock/ComfyDock-Server.git#5a7dc1fdfbfdc735f22ef032b26ead109d08b742" }
 dependencies = [
     { name = "comfydock-core" },
     { name = "fastapi", extra = ["all"] },
@@ -224,10 +224,6 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "requests" },
     { name = "uvicorn" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/5b/9dd83f48426bbe494ba9b7d26f71b957d79cb65c470630eeeda451d52649/comfydock_server-0.1.5.tar.gz", hash = "sha256:e4c9806ae62a7259886307a5cd5620ecfd90e5bbb071dbe8d7c1699d5cd4d796", size = 71559 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/2c/1d97ae8a66081d07ce80581598cb6642b931e964cc9a79c25142aff851d7/comfydock_server-0.1.5-py3-none-any.whl", hash = "sha256:69923255b84d9d33d8a8f0b595ccecee1fa717ef1c5206fa730ed418df3fd7f0", size = 11927 },
 ]
 
 [[package]]

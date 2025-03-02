@@ -179,4 +179,9 @@ To set up a development environment:
 4. Run with your changes: `comfydock up`
 
 
+### About Author
+
+ComfyDock is developed by [@akatz-ai](https://github.com/akatz-ai).
+
+
 

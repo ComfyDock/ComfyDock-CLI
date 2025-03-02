@@ -85,7 +85,7 @@ ADVANCED_CONFIG = {
 NON_CONFIGURABLE_CONFIG = {
     "frontend_image": "akatzai/comfydock-frontend:0.1.4",
     "frontend_container_name": "comfydock-frontend",
-    "backend_host": "127.0.0.1",
+    "backend_host": "localhost",
     "frontend_container_port": 8000,
 }
 

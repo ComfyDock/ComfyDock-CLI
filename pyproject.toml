@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.1.8",
-    "comfydock-server>=0.1.4",
+    "comfydock-server>=0.1.5",
     "python-dotenv>=1.0.1",
 ]
 

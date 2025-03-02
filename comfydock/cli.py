@@ -417,11 +417,16 @@ def up(backend):
         server.start()
         status_message = "ComfyDock is now running!"
         
-        # Attempt to open the default browser automatically (only for full mode)
-        try:
-            webbrowser.open_new_tab(f"http://localhost:{server_config.frontend_host_port}")
-        except:
-            pass
+        # Wait for frontend to be ready before opening browser
+        frontend_url = f"http://localhost:{server_config.frontend_host_port}"
+        if wait_for_frontend_ready(frontend_url, logger):
+            try:
+                logger.info(f"Frontend is ready, opening browser to {frontend_url}")
+                webbrowser.open_new_tab(frontend_url)
+            except Exception as e:
+                logger.warning(f"Could not open browser: {e}")
+        else:
+            logger.warning("Frontend did not become ready in the expected time")
 
     # If an update is available, show notification
     if update_available:
@@ -765,6 +770,45 @@ def _convert_value(val):
 
     # Fallback to string
     return val
+
+def wait_for_frontend_ready(url: str, logger, timeout: int = 30, check_interval: float = 1.0) -> bool:
+    """
+    Wait for the frontend to be ready by polling the URL.
+    
+    Args:
+        url: The URL to check
+        logger: Logger instance
+        timeout: Maximum time to wait in seconds
+        check_interval: Time between checks in seconds
+        
+    Returns:
+        bool: True if frontend is ready, False if timed out
+    """
+    logger.info(f"Waiting for frontend at {url} to be ready (timeout: {timeout}s)")
+    
+    if not REQUESTS_AVAILABLE:
+        logger.warning("Requests package not available, cannot check if frontend is ready")
+        # If we can't check, wait a reasonable time then assume it's ready
+        time.sleep(5)
+        return True
+    
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            # Try to connect to the frontend
+            response = requests.get(url, timeout=2)
+            if response.status_code == 200:
+                logger.info(f"Frontend is ready after {time.time() - start_time:.1f} seconds")
+                return True
+        except requests.RequestException:
+            # Expected during startup, not an error
+            pass
+        
+        # Wait a bit before trying again
+        time.sleep(check_interval)
+    
+    logger.warning(f"Timeout ({timeout}s) waiting for frontend to be ready")
+    return False
 
 def main():
     """

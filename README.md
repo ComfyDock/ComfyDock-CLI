@@ -2,6 +2,12 @@
 
 ComfyDock CLI is a CLI tool for managing ComfyUI environments using ComfyDock and Docker. It is currently a wrapper around the ComfyDock server.
 
+## Prerequisites
+
+- **Docker**: ComfyDock requires Docker to be installed on your system
+  - If you don't have Docker installed, you can download [Docker Desktop](https://www.docker.com/products/docker-desktop/) for Windows, macOS, or Linux
+  - For server environments, you can install [Docker Engine](https://docs.docker.com/engine/install/)
+
 ## Installation
 
 ```bash
@@ -63,8 +69,9 @@ The configuration is automatically created with sensible defaults on first run.
 
 A typical workflow might look like:
 
-1. Install with `pip install comfydock_cli`
-2. Configure your ComfyUI path: `comfydock config comfyui_path /path/to/comfyui`
-3. Start the server: `comfydock up`
-4. Use ComfyDock in your browser
-5. When finished, stop the server with ctrl+c or `comfydock down`
+1. Install Docker if you haven't already
+2. Install with `pip install comfydock`
+3. Configure your ComfyUI path: `comfydock config comfyui_path /path/to/comfyui`
+4. Start the server: `comfydock up`
+5. Use ComfyUI in your browser
+6. When finished, stop the server with ctrl+c or `comfydock down`

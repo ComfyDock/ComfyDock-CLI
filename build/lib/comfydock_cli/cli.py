@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import click
 import signal
 import logging
@@ -145,7 +146,8 @@ def up():
     # but can also do a fallback here if needed:
     try:
         # Just wait until the user hits Ctrl+C or the server signals exit
-        signal.pause()
+        while True:
+            time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
         # Graceful stop if not already handled
         logger.info("Keyboard interrupt or system exit caught. Stopping the server.")

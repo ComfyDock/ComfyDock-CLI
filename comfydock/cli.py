@@ -436,6 +436,7 @@ def up(backend):
         click.echo("")
         click.echo(" To update, run:")
         click.secho("   pip install --upgrade comfydock", fg="green")
+        click.secho("=" * 60 + "\n", fg="yellow", bold=True)
 
     # Print a nicely formatted message for the user
     click.secho("\n" + "=" * 60, fg="cyan", bold=True)
@@ -450,8 +451,11 @@ def up(backend):
     click.secho("  Press Ctrl+C here to stop the server at any time.", fg="yellow")
     click.secho("=" * 60 + "\n", fg="cyan", bold=True)
 
+    # Cross-platform wait for keyboard interrupt instead of signal.pause()
     try:
-        signal.pause()  # Wait until the user hits Ctrl+C or server signals exit
+        # Simple cross-platform event loop that works on Windows and Unix
+        while True:
+            time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
         logger.info("Keyboard interrupt or system exit caught. Stopping the server.")
         # Clear the previous console output message with a shutdown message

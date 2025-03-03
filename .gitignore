@@ -5,3 +5,6 @@
 *.egg-info/
 # Local development environment
 .env*
+
+build/*
+dist/

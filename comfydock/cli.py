@@ -83,7 +83,7 @@ ADVANCED_CONFIG = {
 
 # Settings that are managed internally and not user-configurable
 NON_CONFIGURABLE_CONFIG = {
-    "frontend_image": "akatzai/comfydock-frontend:0.1.5",
+    "frontend_image": "akatzai/comfydock-frontend:0.1.6",
     "frontend_container_name": "comfydock-frontend",
     "backend_host": "localhost",
     "frontend_container_port": 8000,

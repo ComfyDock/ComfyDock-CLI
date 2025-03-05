@@ -1,12 +1,12 @@
 [project]
 name = "comfydock"
-version = "0.1.9"
+version = "0.1.10"
 description = "ComfyDock CLI"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.1.8",
-    "comfydock-server>=0.1.5",
+    "comfydock-server>=0.1.6",
     "packaging>=24.2",
     "python-dotenv>=1.0.1",
 ]

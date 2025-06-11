@@ -250,14 +250,17 @@ def _convert_value(val):
     return val
 
 
-def main():
-    """
-    The main entry point for the CLI.
+def main(argv=None):
+    """The main entry point for the CLI."""
+    if argv is None:
+        # No arguments passed in, default to sys.argv[1:]
+        argv = sys.argv[1:]
+    elif isinstance(argv, str):
+        # If someone called main("up"), split it into ["up"]
+        argv = argv.split()
 
-    If packaging this into a module, you can
-    set up a console_scripts entry point in your setup to call this.
-    """
-    cli()
+    # Invoke Click, passing in our arguments list
+    cli.main(args=argv, prog_name="comfydock")
 
 if __name__ == "__main__":
     main()

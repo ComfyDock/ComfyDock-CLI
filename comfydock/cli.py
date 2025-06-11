@@ -83,7 +83,7 @@ ADVANCED_CONFIG = {
 
 # Settings that are managed internally and not user-configurable
 NON_CONFIGURABLE_CONFIG = {
-    "frontend_image": "akatzai/comfydock-frontend:0.1.6",
+    "frontend_image": "akatzai/comfydock-frontend:0.2.0",
     "frontend_container_name": "comfydock-frontend",
     "backend_host": "localhost",
     "frontend_container_port": 8000,
@@ -814,14 +814,17 @@ def wait_for_frontend_ready(url: str, logger, timeout: int = 30, check_interval:
     logger.warning(f"Timeout ({timeout}s) waiting for frontend to be ready")
     return False
 
-def main():
-    """
-    The main entry point for the CLI.
+def main(argv=None):
+    """The main entry point for the CLI."""
+    if argv is None:
+        # No arguments passed in, default to sys.argv[1:]
+        argv = sys.argv[1:]
+    elif isinstance(argv, str):
+        # If someone called main("up"), split it into ["up"]
+        argv = argv.split()
 
-    If packaging this into a module, you can
-    set up a console_scripts entry point in your setup to call this.
-    """
-    cli()
+    # Invoke Click, passing in our arguments list
+    cli.main(args=argv, prog_name="comfydock")
 
 if __name__ == "__main__":
     main()

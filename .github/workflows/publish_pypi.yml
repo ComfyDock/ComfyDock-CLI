@@ -2,6 +2,8 @@ name: Publish Python Package
 
 on:
   workflow_dispatch:  # Manual trigger
+  push:
+    branches: [ main ]  # Auto-trigger on push to main
 
 jobs:
   publish:

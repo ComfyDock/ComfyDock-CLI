@@ -1,0 +1,42 @@
+{
+  "frontend": {
+    "image": "akatzai/comfydock-frontend:0.2.0",
+    "container_name": "comfydock-frontend",
+    "container_port": 8000,
+    "default_host_port": 8000
+  },
+  "backend": {
+    "port": 5172,
+    "host": "localhost"
+  },
+  "defaults": {
+    "comfyui_path": "~",
+    "db_file_path": "~/.comfydock/environments.json",
+    "user_settings_file_path": "~/.comfydock/user.settings.json",
+    "allow_multiple_containers": false,
+    "dockerhub_tags_url": "https://hub.docker.com/v2/namespaces/akatzai/repositories/comfydock-env/tags?page_size=100"
+  },
+  "advanced": {
+    "log_level": "INFO",
+    "check_for_updates": true,
+    "update_check_interval_days": 1
+  },
+  "logging": {
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+      "detailed": {
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      }
+    },
+    "handlers": {
+      "file": {
+        "class": "logging.handlers.RotatingFileHandler",
+        "formatter": "detailed",
+        "filename": "~/.comfydock/comfydock.log",
+        "maxBytes": 20971520,
+        "backupCount": 3
+      }
+    }
+  }
+} 

@@ -1,6 +1,5 @@
 import click
-from ..core.config import load_config, save_config
-from ..core.logging import configure_logging
+from ..core.config import save_config, UserEditableConfig
 from ..core.updates import check_for_updates, get_package_version
 
 # For version checking
@@ -11,14 +10,16 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 @click.command()
-def update():
+@click.pass_context
+def update(ctx):
     """
     Check for updates to ComfyDock CLI.
     
     This command checks PyPI for newer versions of comfydock-cli
     and provides instructions for updating if available.
     """
-    logger = configure_logging()
+    logger = ctx.obj['logger']
+    user_config: UserEditableConfig = ctx.obj['user_config']
     logger.info("Running 'comfydock update'...")
     
     if not REQUESTS_AVAILABLE:
@@ -29,9 +30,8 @@ def update():
     click.echo("Checking for updates to ComfyDock CLI...")
     
     # Force check for updates regardless of last check time
-    cfg_data = load_config()
-    cfg_data["last_update_check"] = 0
-    save_config(cfg_data)
+    user_config.last_update_check = 0
+    save_config(user_config.model_dump(), logger=logger)
     
     update_available, latest_version = check_for_updates(logger)
     

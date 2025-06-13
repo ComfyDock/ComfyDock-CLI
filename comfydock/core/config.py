@@ -1,7 +1,9 @@
 import os
 import json
 from pathlib import Path
-from typing import Dict, Any
+from typing import Optional, Union
+from pydantic import BaseModel
+from comfydock_server.config import AppConfig
 
 # Add python-dotenv for .env file support
 try:
@@ -16,43 +18,33 @@ except ImportError:
 
 # The directory in the user's home folder to store config, DB, etc.
 CONFIG_DIR = Path.home() / ".comfydock"
-CONFIG_FILE = CONFIG_DIR / "config.json"
+DEFAULT_CONFIG_FILE = CONFIG_DIR / "config.json"
 
-# Settings that users can configure
-CONFIGURABLE_CONFIG = {
-    "comfyui_path": str(Path.home()),
-    "db_file_path": str(CONFIG_DIR / "environments.json"),
-    "user_settings_file_path": str(CONFIG_DIR / "user.settings.json"),
-    "backend_port": 5172,
-    "frontend_host_port": 8000,
-    "allow_multiple_containers": False,
-    "dockerhub_tags_url": "https://hub.docker.com/v2/namespaces/akatzai/repositories/comfydock-env/tags?page_size=100",
-}
+# Pydantic model for the config
+class UserEditableConfig(BaseModel):
+    comfyui_path: Optional[str] = None
+    db_file_path: Optional[str] = None
+    user_settings_file_path: Optional[str] = None
+    backend_port: Optional[int] = None
+    backend_host: Optional[str] = None
+    frontend_image: Optional[str] = None
+    frontend_container_name: Optional[str] = None
+    frontend_container_port: Optional[int] = None
+    frontend_host_port: Optional[int] = None
+    dockerhub_tags_url: Optional[str] = None
+    log_level: Optional[str] = None
+    check_for_updates: Optional[bool] = None
+    update_check_interval_days: Optional[int] = None
+    last_update_check: Optional[int] = None
 
-# Advanced user-configurable settings
-ADVANCED_CONFIG = {
-    "log_level": "INFO",  # Default to INFO, but allow users to change
-    "check_for_updates": True,  # Whether to check for updates
-    "update_check_interval_days": 1,  # Days between update checks
-    "last_update_check": 0,  # Unix timestamp of last check
-}
-
-# Settings that are managed internally and not user-configurable
-NON_CONFIGURABLE_CONFIG = {
-    "frontend_image": "akatzai/comfydock-frontend:0.2.0",
-    "frontend_container_name": "comfydock-frontend",
-    "backend_host": "localhost",
-    "frontend_container_port": 8000,
-}
 
 # Help text for each field (used in 'comfydock config')
 CONFIG_FIELD_HELP = {
     "comfyui_path": "Default filesystem path to your local ComfyUI clone or desired location.",
     "db_file_path": "Where to store known Docker environments (JSON).",
-    "user_settings_file_path": "Where to store user preferences for ComfyDock/ComfyUI.",
+    "user_settings_file_path": "Where to store user preferences for ComfyDock. (JSON)",
     "backend_port": "TCP port for the backend FastAPI server.",
     "frontend_host_port": "TCP port on your local machine for accessing the frontend.",
-    "allow_multiple_containers": "Whether to allow multiple ComfyUI containers to run at once.",
     "dockerhub_tags_url": "URL to the Docker Hub API endpoint for retrieving available tags.",
     
     # Advanced settings
@@ -73,46 +65,56 @@ CONFIG_FIELD_HELP = {
 # Helper functions
 # --------------------------------------------------
 
-def ensure_config_dir_and_file():
-    """Ensure ~/.comfydock/ exists and has a config.json."""
-    if not CONFIG_DIR.exists():
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-
-    if not CONFIG_FILE.exists():
-        config_data = {}
-        config_data.update(CONFIGURABLE_CONFIG)
-        config_data.update(ADVANCED_CONFIG)
+def get_field_mapping():
+    """
+    Define the mapping from UserEditableConfig fields to AppConfig locations.
+    This centralizes the mapping logic for both the actual mapping function and field categories.
+    
+    Returns:
+        dict: Mapping of field names to (section, attribute, condition_check) tuples
+    """
+    return {
+        # Defaults section mappings
+        'comfyui_path': ('defaults', 'comfyui_path', 'truthy'),
+        'db_file_path': ('defaults', 'db_file_path', 'truthy'),
+        'user_settings_file_path': ('defaults', 'user_settings_file_path', 'truthy'),
+        'dockerhub_tags_url': ('defaults', 'dockerhub_tags_url', 'truthy'),
         
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(config_data, f, indent=4)
+        # Advanced section mappings
+        'log_level': ('advanced', 'log_level', 'truthy'),
+        'check_for_updates': ('advanced', 'check_for_updates', 'not_none'),
+        'update_check_interval_days': ('advanced', 'update_check_interval_days', 'not_none'),
+        
+        # Backend section mappings
+        'backend_port': ('backend', 'port', 'not_none'),
+        'backend_host': ('backend', 'host', 'truthy'),
+        
+        # Frontend section mappings
+        'frontend_image': ('frontend', 'image', 'truthy'),
+        'frontend_container_name': ('frontend', 'container_name', 'truthy'),
+        'frontend_container_port': ('frontend', 'container_port', 'truthy'),
+        'frontend_host_port': ('frontend', 'default_host_port', 'not_none'),
+    }
 
-def load_config():
+def load_config(config_file_path: str = DEFAULT_CONFIG_FILE, logger=None) -> UserEditableConfig:
     """Load config from ~/.comfydock/config.json, creating defaults if necessary."""
-    ensure_config_dir_and_file()
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        cfg_data = json.load(f)
+    # ensure_config_dir_and_file()
+    cfg_data = None
+    try:
+        with open(config_file_path, "r", encoding="utf-8") as f:
+            cfg_data = json.load(f)
+    except Exception as e:
+        if logger:
+            logger.error(f"Error loading config from {config_file_path}: {e}")
+        return {}
+        
+    if cfg_data is None:
+        if logger:
+            logger.error(f"Config data is None for {config_file_path}")
+        return {}
 
-    # Fill in any missing configurable fields with defaults
-    updated = False
-    
-    # Add regular configurable settings
-    for key, default_value in CONFIGURABLE_CONFIG.items():
-        if key not in cfg_data:
-            cfg_data[key] = default_value
-            updated = True
-    
-    # Add advanced configurable settings
-    for key, default_value in ADVANCED_CONFIG.items():
-        if key not in cfg_data:
-            cfg_data[key] = default_value
-            updated = True
-
-    # If we updated the config with new defaults, save it back
-    if updated:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(cfg_data, f, indent=4)
-
-    return cfg_data
+    # return schema_config
+    return UserEditableConfig(**cfg_data)
 
 def load_env_files():
     """
@@ -153,88 +155,165 @@ def load_env_files():
         
     return loaded
 
-def _convert_value(val):
+def load_env_overrides() -> UserEditableConfig:
     """
-    A helper to convert user CLI input from strings to bools/ints if needed.
-    Minimal example that tries bool/int, otherwise returns str.
+    Load environment variable overrides with COMFYDOCK_ prefix.
+    Returns a UserEditableConfig with only the overridden values set.
     """
-    # Try boolean
-    if val.lower() in ["true", "false"]:
-        return val.lower() == "true"
-
-    # Try integer
-    try:
-        return int(val)
-    except ValueError:
-        pass
-
-    # Fallback to string
-    return val
-
-def get_complete_config(allow_env_override: bool = True) -> Dict[str, Any]:
-    """
-    Get a complete config dict with both user settings and non-configurable settings.
+    env_overrides = {}
     
-    If allow_env_override is True, environment variables can override non-configurable settings
-    using the format COMFYDOCK_{UPPERCASE_KEY}=value
+    # Get all possible field names from the model
+    all_fields = UserEditableConfig.model_fields.keys()
     
-    Also loads from .env and .env.local files if dotenv is available.
-    """
-    # Load environment variables from .env files
-    if allow_env_override:
-        load_env_files()
-    
-    cfg_data = load_config()
-    
-    # Add all non-configurable settings, but allow environment variable overrides if enabled
-    for key, default_value in NON_CONFIGURABLE_CONFIG.items():
-        # Check for environment variable override
-        env_var_name = f"COMFYDOCK_{key.upper()}"
-        if allow_env_override and env_var_name in os.environ:
-            env_value = os.environ[env_var_name]
-            cfg_data[key] = _convert_value(env_value)
-        else:
-            cfg_data[key] = default_value
+    for field_name in all_fields:
+        env_var_name = f"COMFYDOCK_{field_name.upper()}"
+        env_value = os.environ.get(env_var_name)
         
-    return cfg_data
-
-def save_config(cfg_data):
-    """Save config data back to ~/.comfydock/config.json."""
-    # Filter out any keys that aren't in our known config dictionaries
-    # This prevents non-configurable settings from being saved
-    filtered_data = {}
-    for k, v in cfg_data.items():
-        if k in CONFIGURABLE_CONFIG or k in ADVANCED_CONFIG:
-            filtered_data[k] = v
+        if env_value is not None:
+            # Convert string values to appropriate types
+            field_info = UserEditableConfig.model_fields[field_name]
+            field_type = field_info.annotation
+            
+            # Handle Optional types (extract the inner type)
+            if hasattr(field_type, '__origin__') and field_type.__origin__ is Union:
+                # For Optional[T], get T (the non-None type)
+                inner_types = [t for t in field_type.__args__ if t is not type(None)]
+                if inner_types:
+                    field_type = inner_types[0]
+            
+            # Convert the environment variable value to the correct type
+            try:
+                if field_type == bool:
+                    # Handle boolean conversion
+                    converted_value = env_value.lower() in ('true', '1', 'yes', 'on')
+                elif field_type == int:
+                    converted_value = int(env_value)
+                elif field_type == str:
+                    converted_value = env_value
+                else:
+                    # Default to string for unknown types
+                    converted_value = env_value
+                    
+                env_overrides[field_name] = converted_value
+                
+            except (ValueError, TypeError) as e:
+                # Skip invalid values but could log a warning
+                continue
     
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(filtered_data, f, indent=4)
+    return UserEditableConfig(**env_overrides)
 
-def get_server_config(cli_overrides: Dict[str, Any] = None) -> Dict[str, Any]:
+def save_config(cfg_data, config_file_path: str = DEFAULT_CONFIG_FILE, logger=None):
+    """Save config data back to ~/.comfydock/config.json."""
+    try:
+        with open(config_file_path, "w", encoding="utf-8") as f:
+            json.dump(cfg_data, f, indent=4)
+    except Exception as e:
+        if logger:
+            logger.error(f"Error saving config to {config_file_path}: {e}")
+        raise e
+
+def get_field_categories():
     """
-    Get only the server-specific configuration (excluding CLI-specific settings).
-    This provides a filtered config suitable for passing to ServerConfig.
+    Derive field categories from the field mapping.
+    This ensures the config command stays in sync with the actual mapping.
+    
+    Returns:
+        dict: Field categories with 'basic', 'advanced', and 'system' keys
+    """
+    field_mapping = get_field_mapping()
+    
+    # Group fields by their target section in AppConfig
+    defaults_fields = []
+    advanced_fields = []
+    backend_fields = []
+    frontend_fields = []
+    
+    for field_name, (section, attribute, condition) in field_mapping.items():
+        if section == 'defaults':
+            defaults_fields.append(field_name)
+        elif section == 'advanced':
+            advanced_fields.append(field_name)
+        elif section == 'backend':
+            backend_fields.append(field_name)
+        elif section == 'frontend':
+            frontend_fields.append(field_name)
+    
+    # Combine defaults and network fields as "basic" user-configurable settings
+    basic_fields = defaults_fields + backend_fields + ['frontend_host_port']
+    
+    # System fields are frontend fields that aren't user-configurable basics
+    system_fields = [f for f in frontend_fields if f != 'frontend_host_port']
+    
+    # Add any unmapped fields from UserEditableConfig as system fields
+    all_model_fields = set(UserEditableConfig.model_fields.keys())
+    all_mapped_fields = set(field_mapping.keys())
+    unmapped_fields = all_model_fields - all_mapped_fields
+    system_fields.extend(list(unmapped_fields))
+    
+    return {
+        'basic': basic_fields,
+        'advanced': advanced_fields,
+        'system': system_fields
+    }
+
+def map_user_config_to_app_config(user_config: UserEditableConfig, app_config: AppConfig) -> AppConfig:
+    """
+    Maps fields from UserEditableConfig to the appropriate locations in AppConfig.
+    Only updates fields that are present in user_config, preserving app_config defaults for others.
     
     Args:
-        cli_overrides: Dictionary of CLI argument overrides to apply
+        user_config: The user's configuration loaded from config.json
+        app_config: The AppConfig instance to update
+        
+    Returns:
+        The updated AppConfig instance
     """
-    # Get the complete config first
-    complete_config = get_complete_config()
+    field_mapping = get_field_mapping()
     
-    # Create a new dict with only the keys that ServerConfig expects
-    server_config = {}
+    for field_name, (section, attribute, condition) in field_mapping.items():
+        value = getattr(user_config, field_name, None)
+        
+        # Apply the appropriate condition check
+        should_map = False
+        if condition == 'truthy' and value:
+            should_map = True
+        elif condition == 'not_none' and value is not None:
+            should_map = True
+            
+        if should_map:
+            # Get the section object (e.g., app_config.defaults, app_config.advanced)
+            section_obj = getattr(app_config, section)
+            # Set the attribute on that section
+            setattr(section_obj, attribute, value)
     
-    # Add all configurable settings except those specific to the CLI
-    for key, value in complete_config.items():
-        # Skip CLI-specific advanced settings
-        if key in ADVANCED_CONFIG:
-            continue
-        server_config[key] = value
+    return app_config
+
+def get_all_user_configurable_fields():
+    """Get all fields that users can configure (basic + advanced)."""
+    categories = get_field_categories()
+    return categories['basic'] + categories['advanced']
+
+def get_all_mapped_fields():
+    """Get all fields that are mapped in the UserEditableConfig model."""
+    return list(UserEditableConfig.model_fields.keys())
+
+def merge_user_configs(base_config: UserEditableConfig, override_config: UserEditableConfig) -> UserEditableConfig:
+    """
+    Merge two UserEditableConfig instances, with override_config taking precedence.
+    Only non-None values from override_config will override base_config values.
     
-    # Apply CLI overrides if provided
-    if cli_overrides:
-        for key, value in cli_overrides.items():
-            if value is not None and key in server_config:
-                server_config[key] = value
+    Args:
+        base_config: The base configuration (lower precedence)
+        override_config: The override configuration (higher precedence)
+        
+    Returns:
+        A new UserEditableConfig with merged values
+    """
+    # Convert both configs to dicts, excluding None values
+    base_dict = base_config.model_dump(exclude_none=True)
+    override_dict = override_config.model_dump(exclude_none=True)
     
-    return server_config
+    # Merge the dictionaries (override takes precedence)
+    merged_dict = {**base_dict, **override_dict}
+    
+    return UserEditableConfig(**merged_dict)

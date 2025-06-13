@@ -1,6 +1,8 @@
 import time
 from typing import Optional, Any
 import click
+from pathlib import Path
+from comfydock_server.config import AppConfig
 
 # For web requests
 try:
@@ -94,3 +96,33 @@ def parse_bool_with_default(default: bool):
                 return False
         raise click.BadParameter(f"Invalid bool value: {value}")
     return callback
+
+
+def ensure_config_directories(app_config: AppConfig, logger):
+    """Ensure all configured directories exist."""
+    # Create directories for file-based configs
+    directories_to_create = []
+    
+    # Add directories from defaults
+    directories_to_create.append(Path(app_config.defaults.db_file_path).parent)
+    directories_to_create.append(Path(app_config.defaults.user_settings_file_path).parent)
+    
+    # Add log file directory if configured
+    if hasattr(app_config.logging, '__root__'):
+        handlers = app_config.logging.__root__.get('handlers', {})
+        file_handler = handlers.get('file', {})
+        log_filename = file_handler.get('filename')
+        if log_filename:
+            directories_to_create.append(Path(log_filename).parent)
+    
+    # Create all directories
+    for directory in directories_to_create:
+        if not directory.exists():
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+                logger.info(f"Created directory: {directory}")
+            except Exception as e:
+                logger.warning(f"Failed to create directory {directory}: {e}")
+
+# Call this in your up() function after loading config:
+# ensure_config_directories(app_config, logger)

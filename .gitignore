@@ -12,3 +12,8 @@ dist/
 *.json.lock
 
 Release/*
+# Local development environment
+.env.local
+
+environments.json
+user.settings.json

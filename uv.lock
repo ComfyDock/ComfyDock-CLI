@@ -189,6 +189,7 @@ dependencies = [
     { name = "click" },
     { name = "comfydock-server" },
     { name = "packaging" },
+    { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "setuptools" },
 ]
@@ -198,6 +199,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.8" },
     { name = "comfydock-server", specifier = ">=0.3.0" },
     { name = "packaging", specifier = ">=24.2" },
+    { name = "pydantic", specifier = ">=2.10.6" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "setuptools", specifier = ">=80.9.0" },
 ]

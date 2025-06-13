@@ -1,6 +1,6 @@
 import time
 from typing import Tuple
-from .config import load_config, save_config
+from .config import load_config, save_config, UserEditableConfig
 
 # For version checking
 try:
@@ -37,14 +37,14 @@ def check_for_updates(logger) -> Tuple[bool, str]:
     
     try:
         # Load config to get update settings
-        cfg_data = load_config()
-        if not cfg_data.get("check_for_updates", True):
+        cfg_data: UserEditableConfig = load_config()
+        if not cfg_data.check_for_updates:
             logger.debug("Update checking is disabled in config")
             return False, ""
         
         # Check if we've checked recently
-        last_check = cfg_data.get("last_update_check", 0)
-        interval_days = cfg_data.get("update_check_interval_days", 1)
+        last_check = cfg_data.last_update_check
+        interval_days = cfg_data.update_check_interval_days
         now = int(time.time())
         
         # If we checked less than interval_days ago, skip the check
@@ -55,8 +55,8 @@ def check_for_updates(logger) -> Tuple[bool, str]:
                 return False, ""
         
         # Update the last check timestamp
-        cfg_data["last_update_check"] = now
-        save_config(cfg_data)
+        cfg_data.last_update_check = now
+        save_config(cfg_data.model_dump(), logger=logger)
         
         # Query PyPI for the latest version
         logger.debug("Checking for new version on PyPI")

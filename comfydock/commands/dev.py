@@ -1,5 +1,6 @@
 import os
 import click
+import subprocess
 from pathlib import Path
 from ..core.config import (
     load_env_files, DOTENV_AVAILABLE, get_field_categories, 
@@ -198,3 +199,139 @@ def config_info(ctx):
     click.echo("  3. User config file (~/.comfydock/config.json)")
     click.echo("  4. CLI defaults (cli_defaults.json)")
     click.echo("  5. Server defaults (default_config.json)")
+
+@dev.command()
+@click.option("--shell", default="/bin/bash", help="Shell to use (default: /bin/bash)")
+@click.option("--container", help="Container name or ID to exec into (skips selection)")
+@click.option("--user", help="User to exec as (e.g., 'comfy', 'root'). Defaults to container's default user")
+def exec(shell, container, user):
+    """Execute into a running Docker container's shell.
+    
+    Lists running containers and allows you to choose one to exec into.
+    Defaults to ComfyUI containers (comfy-env-*) if available.
+    """
+    try:
+        # Get list of running containers - use simpler format without table header
+        result = subprocess.run([
+            "docker", "ps", "--format", 
+            r"{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}"
+        ], capture_output=True, text=True, check=True)
+        
+        if not result.stdout.strip():
+            click.secho("No running Docker containers found.", fg="yellow")
+            return
+            
+        lines = result.stdout.strip().split('\n')
+        
+        # Parse container information
+        containers = []
+        for line in lines:
+            if line.strip():
+                parts = line.split('\t')
+                if len(parts) >= 4:
+                    containers.append({
+                        'id': parts[0].strip(),
+                        'name': parts[1].strip(),
+                        'image': parts[2].strip(),
+                        'status': parts[3].strip()
+                    })
+        
+        if not containers:
+            click.secho("No running Docker containers found.", fg="yellow")
+            return
+            
+        # If container specified, use it directly
+        if container:
+            selected_container = None
+            for c in containers:
+                if container in (c['id'], c['name']) or container in c['id']:
+                    selected_container = c
+                    break
+                    
+            if not selected_container:
+                click.secho(f"Container '{container}' not found in running containers.", fg="red")
+                return
+        else:
+            # Sort containers to prioritize ComfyUI containers
+            def sort_key(c):
+                name = c['name'].lower()
+                if 'comfy-env-' in name:
+                    return (0, name)  # Highest priority
+                elif 'comfy' in name:
+                    return (1, name)  # Second priority
+                else:
+                    return (2, name)  # Lowest priority
+                    
+            containers.sort(key=sort_key)
+            
+            # Display containers
+            click.secho("Running Docker containers:", fg="cyan", bold=True)
+            click.echo()
+            
+            for i, c in enumerate(containers, 1):
+                # Highlight ComfyUI containers
+                if 'comfy' in c['name'].lower():
+                    click.secho(f"  {i}. ", fg="green", nl=False, bold=True)
+                    click.secho(f"{c['name']}", fg="green", bold=True, nl=False)
+                    click.echo(f" ({c['id'][:12]}) - {c['image']}")
+                else:
+                    click.echo(f"  {i}. {c['name']} ({c['id'][:12]}) - {c['image']}")
+            
+            click.echo()
+            
+            # Auto-select first ComfyUI container if available
+            default_choice = 1
+            if containers and 'comfy' in containers[0]['name'].lower():
+                click.secho(f"Default: {containers[0]['name']} (ComfyUI container detected)", fg="green")
+            
+            # Get user choice
+            try:
+                choice = click.prompt(
+                    "Select container to exec into", 
+                    type=int, 
+                    default=default_choice,
+                    show_default=True
+                )
+                
+                if choice < 1 or choice > len(containers):
+                    click.secho("Invalid selection.", fg="red")
+                    return
+                    
+                selected_container = containers[choice - 1]
+                
+            except (click.Abort, KeyboardInterrupt):
+                click.echo("\nAborted.")
+                return
+        
+        # Execute into the selected container
+        container_name = selected_container['name']
+        container_id = selected_container['id']
+        
+        click.secho(f"\nExecuting into container: {container_name}", fg="green")
+        if user:
+            click.secho(f"As user: {user}", fg="cyan")
+        click.secho(f"Using shell: {shell}", fg="cyan")
+        click.echo("Type 'exit' to return to your host shell.\n")
+        
+        # Build docker exec command with optional user
+        cmd_parts = ["docker", "exec", "-it"]
+        if user:
+            cmd_parts.extend(["--user", user])
+        cmd_parts.extend([container_id, shell])
+        
+        # Use os.system for interactive shell (join command parts)
+        cmd = " ".join(cmd_parts)
+        exit_code = os.system(cmd)
+        
+        if exit_code != 0:
+            click.secho(f"\nCommand exited with code {exit_code}", fg="yellow")
+        else:
+            click.secho("\nExited container shell.", fg="green")
+            
+    except subprocess.CalledProcessError as e:
+        click.secho(f"Error running docker command: {e}", fg="red")
+        click.echo("Make sure Docker is running and you have permission to use it.")
+    except FileNotFoundError:
+        click.secho("Docker command not found. Please install Docker.", fg="red")
+    except Exception as e:
+        click.secho(f"Unexpected error: {e}", fg="red")

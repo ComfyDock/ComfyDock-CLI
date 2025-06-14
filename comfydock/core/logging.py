@@ -1,4 +1,6 @@
 import logging
+import os
+from pathlib import Path
 from comfydock_server.config import AppConfig
 
 # Valid logging levels
@@ -61,6 +63,19 @@ def configure_logging(app_config: AppConfig, level=None, log_file_path=None):
     # If a log file path is provided, override the file handler filename
     if log_file_path is not None and 'handlers' in logging_config and 'file' in logging_config['handlers']:
         logging_config['handlers']['file']['filename'] = log_file_path
+    
+    # Expand tilde in log file path if it exists
+    if 'handlers' in logging_config and 'file' in logging_config['handlers']:
+        file_path = logging_config['handlers']['file']['filename']
+        if file_path and '~' in file_path:
+            # Expand the tilde to the user's home directory
+            expanded_path = os.path.expanduser(file_path)
+            logging_config['handlers']['file']['filename'] = expanded_path
+            
+            # Ensure the directory exists
+            log_dir = os.path.dirname(expanded_path)
+            if log_dir and not os.path.exists(log_dir):
+                os.makedirs(log_dir, exist_ok=True)
     
     # If a level is provided, override all level settings in the config
     if level is not None:

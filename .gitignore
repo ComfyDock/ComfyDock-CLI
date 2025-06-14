@@ -12,3 +12,10 @@ dist/
 *.json.lock
 
 Release/*
+# Local development environment
+.env.local
+
+config.json
+environments.json
+user.settings.json
+comfydock.log

@@ -40,7 +40,7 @@ def get_safe_logger(logger=None):
     """Get a null-safe logger wrapper."""
     return NullSafeLogger(logger)
 
-def configure_logging(app_config: AppConfig, level=None):
+def configure_logging(app_config: AppConfig, level=None, log_file_path=None):
     """
     Configure logging using the config from app_config.logging.__root__.
     Optionally override level values with the provided level parameter.
@@ -49,12 +49,18 @@ def configure_logging(app_config: AppConfig, level=None):
         app_config: The application configuration containing logging settings
         level: Optional log level string (DEBUG, INFO, WARNING, ERROR, CRITICAL).
                If provided, overrides all level settings in the logging config.
+        log_file_path: Optional path to the log file. If provided, overrides the
+                      default filename in the file handler configuration.
     
     Returns:
         The configured root logger
     """
     # Get the logging config dict
     logging_config = app_config.logging.__root__.copy()
+    
+    # If a log file path is provided, override the file handler filename
+    if log_file_path is not None and 'handlers' in logging_config and 'file' in logging_config['handlers']:
+        logging_config['handlers']['file']['filename'] = log_file_path
     
     # If a level is provided, override all level settings in the config
     if level is not None:

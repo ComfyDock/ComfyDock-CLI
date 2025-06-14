@@ -33,6 +33,7 @@ class UserEditableConfig(BaseModel):
     frontend_host_port: Optional[int] = None
     dockerhub_tags_url: Optional[str] = None
     log_level: Optional[str] = None
+    log_file_path: Optional[str] = None
     check_for_updates: Optional[bool] = None
     update_check_interval_days: Optional[int] = None
     last_update_check: Optional[int] = None
@@ -49,6 +50,7 @@ CONFIG_FIELD_HELP = {
     
     # Advanced settings
     "log_level": "Logging verbosity (DEBUG, INFO, WARNING, ERROR, CRITICAL).",
+    "log_file_path": "Path to the log file (defaults to ~/.comfydock/comfydock.log).",
     "check_for_updates": "Whether to automatically check for ComfyDock CLI updates.",
     "update_check_interval_days": "Days between update checks.",
     "last_update_check": "Unix timestamp of the last update check (internal use).",
@@ -106,12 +108,12 @@ def load_config(config_file_path: str = DEFAULT_CONFIG_FILE, logger=None) -> Use
     except Exception as e:
         if logger:
             logger.error(f"Error loading config from {config_file_path}: {e}")
-        return {}
+        return UserEditableConfig()  # Return empty UserEditableConfig instead of {}
         
     if cfg_data is None:
         if logger:
             logger.error(f"Config data is None for {config_file_path}")
-        return {}
+        return UserEditableConfig()  # Return empty UserEditableConfig instead of {}
 
     # return schema_config
     return UserEditableConfig(**cfg_data)
@@ -239,7 +241,7 @@ def get_field_categories():
             frontend_fields.append(field_name)
     
     # Combine defaults and network fields as "basic" user-configurable settings
-    basic_fields = defaults_fields + backend_fields + ['frontend_host_port']
+    basic_fields = defaults_fields + backend_fields + ['frontend_host_port', 'log_file_path']
     
     # System fields are frontend fields that aren't user-configurable basics
     system_fields = [f for f in frontend_fields if f != 'frontend_host_port']

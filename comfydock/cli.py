@@ -24,11 +24,12 @@ from .commands.update import update
 @click.option("--comfyui-path", type=str, help="Path to ComfyUI installation")
 @click.option("--db-file-path", type=str, help="Path to environments database file")
 @click.option("--user-settings-file-path", type=str, help="Path to user settings file")
+@click.option("--log-file-path", type=str, help="Path to the log file")
 @click.option("--backend-port", type=int, help="Backend server port")
 @click.option("--frontend-host-port", type=int, help="Frontend host port")
 @click.option("--allow-multiple-containers", type=bool, help="Allow running multiple containers")
 @click.pass_context
-def cli(ctx, log_level, quiet, verbose, config_file, comfyui_path, db_file_path, user_settings_file_path, backend_port, frontend_host_port, allow_multiple_containers):
+def cli(ctx, log_level, quiet, verbose, config_file, comfyui_path, db_file_path, user_settings_file_path, log_file_path, backend_port, frontend_host_port, allow_multiple_containers):
     """ComfyDock CLI - Manage ComfyUI Docker environments.
     
     A tool for running and managing ComfyUI installations with Docker.
@@ -71,7 +72,6 @@ def cli(ctx, log_level, quiet, verbose, config_file, comfyui_path, db_file_path,
             app_config.defaults.user_settings_file_path = user_settings_file_path
         if allow_multiple_containers is not None:
             app_config.defaults.allow_multiple_containers = allow_multiple_containers
-            
     except Exception as e:
         click.secho(f"Error loading configuration: {e}", fg="red")
         raise click.Abort()
@@ -88,7 +88,8 @@ def cli(ctx, log_level, quiet, verbose, config_file, comfyui_path, db_file_path,
         effective_log_level =  None #app_config.advanced.log_level
     
     # Configure logging using the final config
-    raw_logger = configure_logging(app_config, level=effective_log_level)
+    log_file_path = log_file_path if log_file_path is not None else user_config.log_file_path
+    raw_logger = configure_logging(app_config, level=effective_log_level, log_file_path=log_file_path)
     
     # Ensure config directories exist now that we have a logger
     ensure_config_directories(app_config, raw_logger)

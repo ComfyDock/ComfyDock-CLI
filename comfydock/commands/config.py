@@ -1,7 +1,8 @@
 import click
 from ..core.config import (
     save_config,
-    CONFIG_FIELD_HELP, get_field_categories, get_all_user_configurable_fields
+    CONFIG_FIELD_HELP, get_field_categories, get_all_user_configurable_fields,
+    get_field_mapping
 )
 from ..core.logging import VALID_LOG_LEVELS
 
@@ -20,6 +21,23 @@ def _convert_value(val):
     
     # Return as-is (string or already converted)
     return val
+
+def _get_default_value_from_app_config(field_name: str, app_config) -> str:
+    """Get the default value for a field from app_config."""
+    from ..core.config import get_field_mapping
+    
+    field_mapping = get_field_mapping()
+    if field_name not in field_mapping:
+        return ""
+    
+    section, attribute, condition = field_mapping[field_name]
+    
+    try:
+        section_obj = getattr(app_config, section)
+        value = getattr(section_obj, attribute, None)
+        return str(value) if value is not None else ""
+    except (AttributeError, TypeError):
+        return ""
 
 @click.command()
 @click.option("--list", "list_config", is_flag=True,
@@ -59,6 +77,7 @@ def config(ctx, list_config, show_all, advanced, field, value):
     logger = ctx.obj['logger']
     user_config_path = ctx.obj['user_config_path']
     user_config = ctx.obj['user_config']
+    app_config = ctx.obj['app_config']  # Get app_config for default values
     
     # Get field categories from the mapping logic
     field_categories = get_field_categories()
@@ -176,6 +195,12 @@ def config(ctx, list_config, show_all, advanced, field, value):
         current_val = getattr(user_config, field_name, "")
         desc = CONFIG_FIELD_HELP.get(field_name, "")
         
+        # Get default value from app_config if current value is empty
+        if not current_val:
+            default_val = _get_default_value_from_app_config(field_name, app_config)
+        else:
+            default_val = str(current_val)
+        
         # Add special handling for log_level
         if field_name == "log_level":
             valid_options = ", ".join(VALID_LOG_LEVELS.keys())
@@ -183,9 +208,9 @@ def config(ctx, list_config, show_all, advanced, field, value):
         elif desc:
             click.echo(f"\n{desc}")
             
-        new_val = click.prompt(f"{field_name}", default=str(current_val) if current_val else "")
+        new_val = click.prompt(f"{field_name}", default=default_val if default_val else "")
         
-        # Skip if no change
+        # Skip if no change (compare with current value, not default)
         if str(new_val) == str(current_val):
             continue
             
